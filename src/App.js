@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import { format, parseISO } from "date-fns";
+import SparkLines from "./SparkLines"; // Assumes SparkLines.js is in the same directory
+import "./SparkLines.css"; // Assumes styles are in SparkLines.css
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -6,7 +9,7 @@ function SortArrow({ order }) {
   return <span>{order === "asc" ? " ▲" : " ▼"}</span>;
 }
 
-export default function AthenaTable() {
+export default function App() {
   const [data, setData] = useState([]);
   const [sortColumn, setSortColumn] = useState("utc");
   const [sortOrder, setSortOrder] = useState("desc");
@@ -36,7 +39,12 @@ export default function AthenaTable() {
     fetch(API_URL + queryParams)
       .then((res) => res.json())
       .then((result) => {
-        setData(result);
+        const cleaned = result.map((r) => ({
+          ...r,
+          splitName: r.splitName || r.splitname || r.flag,
+        }));
+        console.log("Sample cleaned impression:", cleaned[0]);
+        setData(cleaned);
         setSortColumn("utc");
         setSortOrder("desc");
       })
@@ -51,13 +59,14 @@ export default function AthenaTable() {
     const valA = a[sortColumn];
     const valB = b[sortColumn];
     if (!valA || !valB) return 0;
-
     if (sortOrder === "asc") {
       return valA < valB ? -1 : valA > valB ? 1 : 0;
     } else {
       return valA > valB ? -1 : valA < valB ? 1 : 0;
     }
   });
+
+  const headers = data.length ? Object.keys(data[0]) : [];
 
   const handleSort = (column) => {
     if (column === sortColumn) {
@@ -68,13 +77,11 @@ export default function AthenaTable() {
     }
   };
 
-  const headers = data.length ? Object.keys(data[0]) : [];
-
   return (
-    <div style={{ padding: "20px", fontFamily: "sans-serif", textAlign: "center" }}>
-      <h2>Impressions User Journey</h2>
+    <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
+      <h2 style={{ textAlign: "center" }}>Impressions User Journey</h2>
 
-      <div style={{ marginBottom: "16px" }}>
+      <div style={{ marginBottom: "16px", textAlign: "center" }}>
         <input
           type="text"
           placeholder="key"
@@ -100,59 +107,64 @@ export default function AthenaTable() {
           <div style={{ color: "red", marginTop: "10px" }}>{error}</div>
         )}
         {loading && !error && (
-          <div style={{ marginTop: "10px", color: "#666" }}>Running Athena query…</div>
+          <div style={{ marginTop: "10px", color: "#666" }}>
+            Running Athena query…
+          </div>
         )}
       </div>
 
       {data.length > 0 && (
-        <table
-          style={{
-            borderCollapse: "collapse",
-            margin: "0 auto",
-            minWidth: "600px",
-            maxWidth: "80%",
-          }}
-        >
-          <thead>
-            <tr>
-              {headers.map((col) => (
-                <th
-                  key={col}
-                  onClick={() => handleSort(col)}
-                  style={{
-                    cursor: "pointer",
-                    borderBottom: "1px solid #ccc",
-                    padding: "8px",
-                    textAlign: "left",
-                  }}
-                >
-                  {col}
-                  {sortColumn === col && <SortArrow order={sortOrder} />}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedData.map((row, idx) => (
-              <tr key={idx}>
+        <div style={{ display: "flex", alignItems: "flex-start" }}>
+          <table
+            style={{
+              borderCollapse: "collapse",
+              minWidth: "600px",
+              maxWidth: "50%",
+              marginRight: "20px",
+            }}
+          >
+            <thead>
+              <tr>
                 {headers.map((col) => (
-                  <td
+                  <th
                     key={col}
+                    onClick={() => handleSort(col)}
                     style={{
+                      cursor: "pointer",
+                      borderBottom: "1px solid #ccc",
                       padding: "8px",
-                      borderBottom: "1px solid #eee",
-                      fontFamily: "monospace",
+                      textAlign: "left",
                     }}
                   >
-                    {row[col]}
-                  </td>
+                    {col}
+                    {sortColumn === col && <SortArrow order={sortOrder} />}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {sortedData.map((row, idx) => (
+                <tr key={idx}>
+                  {headers.map((col) => (
+                    <td
+                      key={col}
+                      style={{
+                        padding: "8px",
+                        borderBottom: "1px solid #eee",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      {row[col]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <SparkLines impressions={sortedData} />
+        </div>
       )}
     </div>
   );
 }
-

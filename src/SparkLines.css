@@ -1,0 +1,61 @@
+.sparkline-stack {
+  width: 100%;
+  font-family: sans-serif;
+}
+
+.sparkline-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.sparkline-label {
+  width: 160px;
+  text-align: right;
+  padding-right: 10px;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+.sparkline-bar {
+  position: relative;
+  height: 20px;
+  background-color: #eee;
+  border-radius: 4px;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.sparkline-segment {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+/* crosshatch fallback treatment style */
+.crosshatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+/* x-axis at bottom */
+.sparkline-x-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-left: 160px;
+  font-size: 0.8em;
+  color: #444;
+  user-select: none;
+}
+
+.sparkline-x-tick {
+  width: 0;
+  text-align: center;
+  transform: translateX(-50%);
+}
