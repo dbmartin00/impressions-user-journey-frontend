@@ -1,12 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import JourneyView from "./JourneyView";
 import PieSummary from "./PieSummary";
+import ControlChart from "./ControlChart";
+import DailyChart from "./DailyChart";
 
 const API_URL = process.env.REACT_APP_API_URL;
-
-function SortArrow({ order }) {
-  return <span>{order === "asc" ? " ▲" : " ▼"}</span>;
-}
 
 export default function App() {
   const [data, setData] = useState([]);
@@ -16,6 +14,16 @@ export default function App() {
   const [daysInput, setDaysInput] = useState("30");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [summaryLoaded, setSummaryLoaded] = useState(false);
+  const [controlLoaded, setControlLoaded] = useState(false);
+
+  const allReady = summaryLoaded && controlLoaded;
+
+  useEffect(() => {
+    console.log("Summary loaded:", summaryLoaded);
+    console.log("Control loaded:", controlLoaded);
+  }, [summaryLoaded, controlLoaded]);
 
   const handleQuery = () => {
     const trimmedKey = keyInput.trim();
@@ -64,34 +72,42 @@ export default function App() {
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
+    <div style={{ padding: "20px", fontFamily: "sans-serif", position: "relative" }}>
+      {!allReady && (
+        <div style={{
+          position: "fixed",
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: "rgba(255, 255, 255, 0.8)",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "20px",
+          color: "#555"
+        }}>
+          🔄 Loading Impressions Dashboard...
+        </div>
+      )}
+
       <h1 style={{ textAlign: "center" }}>Impressions Explorer</h1>
 
-      {/* SECTION 1: OVERALL SUMMARY */}
-      <section
-        style={{
-          backgroundColor: "#f8f9fa",
-          padding: "20px",
-          marginBottom: "30px",
-          borderRadius: "8px",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-        }}
-      >
+      <section style={sectionStyle}>
         <h2 style={{ marginTop: 0 }}>📊 Overall Impressions Summary</h2>
-        <PieSummary />
+        <PieSummary onLoaded={() => setSummaryLoaded(true)} />
       </section>
 
-      {/* SECTION 2: USER JOURNEY */}
-      <section
-        style={{
-          backgroundColor: "#fff",
-          padding: "20px",
-          borderRadius: "8px",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-        }}
-      >
-        <h2 style={{ marginTop: 0 }}>🔍 User Journey Viewer</h2>
+      <section style={sectionStyle}>
+        <h2 style={{ marginTop: 0 }}>🧪 Control Treatments by Flag</h2>
+        <ControlChart onLoaded={() => setControlLoaded(true)} />
+      </section>
 
+      <section style={sectionStyle}>
+        <h2 style={{ marginTop: 0 }}>📈 Daily Impressions by Flag</h2>
+        <DailyChart />
+      </section>
+
+      <section style={sectionStyle}>
+        <h2 style={{ marginTop: 0 }}>🔍 User Journey Viewer</h2>
         <div style={{ marginBottom: "16px", textAlign: "center" }}>
           <input
             type="text"
@@ -136,3 +152,11 @@ export default function App() {
     </div>
   );
 }
+
+const sectionStyle = {
+  backgroundColor: "#fff",
+  padding: "20px",
+  marginBottom: "30px",
+  borderRadius: "8px",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+};

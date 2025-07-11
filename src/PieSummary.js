@@ -1,41 +1,45 @@
+// src/PieSummary.js
 import React, { useEffect, useState } from "react";
 import { ResponsivePie } from "@nivo/pie";
+import axios from "axios";
+import { COLOR_MAP } from "./colors";
 
 const PIE_ENDPOINT = process.env.REACT_APP_PIE_ENDPOINT;
 
-const COLOR_MAP = [
-  "#506886", // off
-  "#5b7ebd", // on
-  "#2d2c2f", // control
-  "#658dc6",
-  "#7a9dcb",
-  "#93b4d7",
-  "#a5b8d0",
-  "#adbed3"
-];
-
-
-export default function PieSummary() {
+export default function PieSummary({ onLoaded }) {
+  console.log('PieSummary onLoaded - ' + onLoaded);
   const [summaryData, setSummaryData] = useState([]);
   const [envId, setEnvId] = useState("");
   const [envOptions, setEnvOptions] = useState([]);
 
   useEffect(() => {
-    fetch(PIE_ENDPOINT)
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Lambda Pie Data:", data);
+    console.log('PieSummary useEffect');
+    const fetchData = async () => {
+      // console.log("PIE_ENDPOINT =", PIE_ENDPOINT);
+      try {
+        const res = await axios.get(PIE_ENDPOINT);
+        console.log("Lambda Pie Data:", res.data);
+        const data = res.data;
         setSummaryData(data);
 
         const uniqueEnvIds = [...new Set(data.map((d) => d.environmentId))];
         setEnvOptions(uniqueEnvIds);
         if (uniqueEnvIds.length > 0) setEnvId(uniqueEnvIds[0]);
-      })
-      .catch((err) => console.error("Error loading pie data:", err));
-  }, []);
+      } catch (err) {
+        console.error("Error loading pie data:", err);
+      } finally {
+        console.log("PieSummary finished loading");
+        if (onLoaded) onLoaded();
+      }
+    };
 
-  if (!summaryData || summaryData.length === 0) return null;
-  if (!envId) return null;
+    fetchData();
+  }, [onLoaded]);
+
+  // if (!summaryData || summaryData.length === 0 || !envId) return null;
+  if (!summaryData || summaryData.length === 0 || !envId) {
+    return <div style={{ padding: "1em", color: "#666" }}>Loading summary data…</div>;
+  }
 
   const filtered = summaryData
     .filter((d) => d.environmentId === envId)

@@ -1,17 +1,6 @@
 import React from "react";
 import "./SparkLines.css";
-
-// Unified color map
-const COLOR_MAP = [
-  "#d5d5d8", // off
-  "#5b7ebd", // on
-  "#2d2c2f", // control
-  "#658dc6",
-  "#7a9dcb",
-  "#93b4d7",
-  "#a5b8d0",
-  "#adbed3"
-];
+import { COLOR_MAP } from "./colors";
 
 export default function SparkLines({ impressions }) {
   const splitMap = {};
@@ -54,7 +43,7 @@ export default function SparkLines({ impressions }) {
         let lastTime = minTime;
         let lastTreatment = null;
 
-        const uniqueTreatments = [...new Set(entries.map((e) => e.treatment))];
+        // const uniqueTreatments = [...new Set(entries.map((e) => e.treatment))];
         const treatmentColors = {};
         let colorIndex = 3; // Start after off/on/control
 
