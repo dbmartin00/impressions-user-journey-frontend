@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ResponsivePie } from "@nivo/pie";
 
-const PIE_ENDPOINT =
-  "***REMOVED***";
+const PIE_ENDPOINT = process.env.REACT_APP_PIE_ENDPOINT;
 
 const COLOR_MAP = [
   "#506886", // off
