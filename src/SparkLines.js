@@ -1,22 +1,17 @@
 import React from "react";
 import "./SparkLines.css";
 
-// Finalized color rules
-const COLOR_MAP = {
-  off: "#dc5b62",
-  on: "#8cadd3",
-  control: "#2d2c2f",
-};
-
-const EXTRA_COLORS = [
-  "#be9cc1",
-  "#ead3ae",
-  "#f7d000",
-  "#ffa64f",
-  "#f88f58",
+// Unified color map
+const COLOR_MAP = [
+  "#d5d5d8", // off
+  "#5b7ebd", // on
+  "#2d2c2f", // control
+  "#658dc6",
+  "#7a9dcb",
+  "#93b4d7",
+  "#a5b8d0",
+  "#adbed3"
 ];
-
-const OVERFLOW_COLOR = "#d9afca";
 
 export default function SparkLines({ impressions }) {
   const splitMap = {};
@@ -60,27 +55,28 @@ export default function SparkLines({ impressions }) {
         let lastTreatment = null;
 
         const uniqueTreatments = [...new Set(entries.map((e) => e.treatment))];
-        const paletteMap = {};
-        let colorIndex = 0;
+        const treatmentColors = {};
+        let colorIndex = 3; // Start after off/on/control
 
         const getTreatmentStyle = (treatment) => {
-          if (COLOR_MAP[treatment]) {
-            return { color: COLOR_MAP[treatment], crosshatch: false };
-          }
-          if (!(treatment in paletteMap)) {
-            if (colorIndex < EXTRA_COLORS.length) {
-              paletteMap[treatment] = {
-                color: EXTRA_COLORS[colorIndex++],
-                crosshatch: false,
+          if (treatment === "off") return { color: COLOR_MAP[0], crosshatch: false };
+          if (treatment === "on") return { color: COLOR_MAP[1], crosshatch: false };
+          if (treatment === "control") return { color: COLOR_MAP[2], crosshatch: false };
+
+          if (!(treatment in treatmentColors)) {
+            if (colorIndex < COLOR_MAP.length) {
+              treatmentColors[treatment] = {
+                color: COLOR_MAP[colorIndex++],
+                crosshatch: false
               };
             } else {
-              paletteMap[treatment] = {
-                color: OVERFLOW_COLOR,
-                crosshatch: true,
+              treatmentColors[treatment] = {
+                color: COLOR_MAP.at(-1),
+                crosshatch: true
               };
             }
           }
-          return paletteMap[treatment];
+          return treatmentColors[treatment];
         };
 
         for (const { utc, treatment } of entries) {
@@ -92,7 +88,7 @@ export default function SparkLines({ impressions }) {
               width: ((time - lastTime) / timeRange) * 100,
               color,
               crosshatch,
-              treatment: lastTreatment,
+              treatment: lastTreatment
             });
           }
           lastTime = time;
@@ -106,7 +102,7 @@ export default function SparkLines({ impressions }) {
             width: ((maxTime - lastTime) / timeRange) * 100,
             color,
             crosshatch,
-            treatment: lastTreatment,
+            treatment: lastTreatment
           });
         }
 
@@ -121,7 +117,7 @@ export default function SparkLines({ impressions }) {
                   style={{
                     left: `${seg.left}%`,
                     width: `${seg.width}%`,
-                    backgroundColor: seg.color,
+                    backgroundColor: seg.color
                   }}
                   title={`Split: ${splitName}\nTreatment: ${seg.treatment}`}
                 />
@@ -133,7 +129,9 @@ export default function SparkLines({ impressions }) {
 
       <div className="sparkline-x-axis">
         {ticks.map((label, i) => (
-          <div key={i} className="sparkline-x-tick">{label}</div>
+          <div key={i} className="sparkline-x-tick">
+            {label}
+          </div>
         ))}
       </div>
     </div>
