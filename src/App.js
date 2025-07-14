@@ -3,6 +3,8 @@ import JourneyView from "./JourneyView";
 import PieSummary from "./PieSummary";
 import ControlChart from "./ControlChart";
 import DailyChart from "./DailyChart";
+// import logo from "./harness-logo.svg"; // Ensure this asset exists or replace with URL
+const logo = "/harness_logo.jpg";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -72,67 +74,65 @@ export default function App() {
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "sans-serif", position: "relative" }}>
+    <div style={{ fontFamily: "sans-serif", padding: "20px", backgroundColor: "#f8f9fa" }}>
       {!allReady && (
-        <div style={{
-          position: "fixed",
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: "rgba(255, 255, 255, 0.8)",
-          zIndex: 9999,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "20px",
-          color: "#555"
-        }}>
+        <div style={loadingOverlay}>
           🔄 Loading Impressions Dashboard...
         </div>
       )}
 
-      <h1 style={{ textAlign: "center" }}>Impressions Explorer</h1>
+      <header style={{ display: "flex", alignItems: "center", marginBottom: "40px" }}>
+        <img src={logo} alt="Harness" style={{ height: "40px", marginRight: "12px" }} />
+        <h1 style={{ margin: 0, fontSize: "28px", color: "#333" }}>Impressions Journey</h1>
+      </header>
+
+      <div style={rowStyle}>
+        <section style={{ ...sectionStyle, flex: 1, marginRight: "20px" }}>
+          <h2 style={h2Style}>📊 Overall Impressions Summary</h2>
+          <PieSummary onLoaded={() => setSummaryLoaded(true)} showLegend={false} />
+        </section>
+
+        <section style={{ ...sectionStyle, flex: 1 }}>
+          <h2 style={h2Style}>🧪 Control Treatments by Flag</h2>
+          <ControlChart onLoaded={() => setControlLoaded(true)} />
+        </section>
+      </div>
 
       <section style={sectionStyle}>
-        <h2 style={{ marginTop: 0 }}>📊 Overall Impressions Summary</h2>
-        <PieSummary onLoaded={() => setSummaryLoaded(true)} />
-      </section>
-
-      <section style={sectionStyle}>
-        <h2 style={{ marginTop: 0 }}>🧪 Control Treatments by Flag</h2>
-        <ControlChart onLoaded={() => setControlLoaded(true)} />
-      </section>
-
-      <section style={sectionStyle}>
-        <h2 style={{ marginTop: 0 }}>📈 Daily Impressions by Flag</h2>
+        <h2 style={h2Style}>📈 Daily Impressions by Flag</h2>
         <DailyChart />
       </section>
 
-      <section style={sectionStyle}>
-        <h2 style={{ marginTop: 0 }}>🔍 User Journey Viewer</h2>
+      <section style={{ ...sectionStyle, ...grayBackground }}>
+        <h2 style={h2Style}>🔍 User Journey Viewer</h2>
         <div style={{ marginBottom: "16px", textAlign: "center" }}>
           <input
             type="text"
             placeholder="key"
             value={keyInput}
             onChange={(e) => setKeyInput(e.target.value)}
-            style={{ marginRight: "8px", padding: "6px" }}
+            style={inputStyle}
           />
           <input
             type="number"
             placeholder="days"
             value={daysInput}
             onChange={(e) => setDaysInput(e.target.value)}
-            style={{ marginRight: "8px", padding: "6px", width: "70px" }}
+            style={{ ...inputStyle, width: "70px" }}
           />
           <button
             onClick={handleQuery}
             disabled={loading}
-            style={{ padding: "6px 12px", opacity: loading ? 0.6 : 1 }}
+            style={{
+              padding: "6px 12px",
+              opacity: loading ? 0.6 : 1,
+              cursor: loading ? "wait" : "pointer"
+            }}
           >
             {loading ? "Querying…" : "Query"}
           </button>
-          {error && (
-            <div style={{ color: "red", marginTop: "10px" }}>{error}</div>
-          )}
+
+          {error && <div style={{ color: "red", marginTop: "10px" }}>{error}</div>}
           {loading && !error && (
             <div style={{ marginTop: "10px", color: "#666" }}>
               Running Athena query…
@@ -141,12 +141,14 @@ export default function App() {
         </div>
 
         {data.length > 0 && (
-          <JourneyView
-            data={data}
-            sortColumn={sortColumn}
-            sortOrder={sortOrder}
-            onSort={handleSort}
-          />
+          <div style={grayBackground}>
+            <JourneyView
+              data={data}
+              sortColumn={sortColumn}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+            />
+          </div>
         )}
       </section>
     </div>
@@ -158,5 +160,48 @@ const sectionStyle = {
   padding: "20px",
   marginBottom: "30px",
   borderRadius: "8px",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+  boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+  width: "80%",
+  marginLeft: "auto",
+  marginRight: "auto",
+};
+
+const grayBackground = {
+  backgroundColor: "#e6e6e6",
+  borderRadius: "8px",
+  padding: "20px"
+};
+
+const rowStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "center",
+  marginBottom: "30px",
+};
+
+const h2Style = {
+  marginTop: 0,
+  color: "#222",
+};
+
+const inputStyle = {
+  marginRight: "8px",
+  padding: "6px",
+  borderRadius: "4px",
+  border: "1px solid #ccc",
+};
+
+const loadingOverlay = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: "rgba(255, 255, 255, 0.8)",
+  zIndex: 9999,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "20px",
+  color: "#555",
 };
