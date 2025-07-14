@@ -1,77 +1,46 @@
 // src/PieSummary.js
 import React, { useEffect, useState } from "react";
 import { ResponsivePie } from "@nivo/pie";
-import axios from "axios";
 import { COLOR_MAP } from "./colors";
+import axios from "axios";
 
-const PIE_ENDPOINT = process.env.REACT_APP_PIE_ENDPOINT;
+const MTK_API_URL = "https://v2izbwoeqbbxxuim2urfyrlspi0fwzez.lambda-url.us-west-2.on.aws/";
 
-export default function PieSummary({ onLoaded }) {
-  console.log('PieSummary onLoaded - ' + onLoaded);
-  const [summaryData, setSummaryData] = useState([]);
-  const [envId, setEnvId] = useState("");
-  const [envOptions, setEnvOptions] = useState([]);
+export default function PieSummary({ environmentId, onLoaded }) {
+  const [data, setData] = useState([]);
 
   useEffect(() => {
-    console.log('PieSummary useEffect');
-    const fetchData = async () => {
-      // console.log("PIE_ENDPOINT =", PIE_ENDPOINT);
-      try {
-        const res = await axios.get(PIE_ENDPOINT);
-        console.log("Lambda Pie Data:", res.data);
-        const data = res.data;
-        setSummaryData(data);
+    if (!environmentId) return;
 
-        const uniqueEnvIds = [...new Set(data.map((d) => d.environmentId))];
-        setEnvOptions(uniqueEnvIds);
-        if (uniqueEnvIds.length > 0) setEnvId(uniqueEnvIds[0]);
-      } catch (err) {
-        console.error("Error loading pie data:", err);
-      } finally {
-        console.log("PieSummary finished loading");
+    axios.get(MTK_API_URL)
+      .then((res) => {
+        const filtered = res.data.filter(
+          (item) => item.environmentId === environmentId
+        );
+        setData(filtered);
+      })
+      .catch((err) => {
+        console.error("Failed to load MTK summary data:", err);
+        setData([]);
+      })
+      .finally(() => {
         if (onLoaded) onLoaded();
-      }
-    };
+      });
+  }, [environmentId, onLoaded]);
 
-    fetchData();
-  }, [onLoaded]);
-
-  // if (!summaryData || summaryData.length === 0 || !envId) return null;
-  if (!summaryData || summaryData.length === 0 || !envId) {
-    return <div style={{ padding: "1em", color: "#666" }}>Loading summary data…</div>;
+  if (!data || data.length === 0) {
+    return <div style={{ padding: "1em", color: "#666" }}>No summary data available…</div>;
   }
 
-  const filtered = summaryData
-    .filter((d) => d.environmentId === envId)
-    .slice(0, 25);
-
-  const pieData = filtered.map((item, index) => ({
-    id: item.splitName,
-    label: item.splitName,
+  const pieData = data.slice(0, 25).map((item, index) => ({
+    id: item.splitName || item.splitname || item.flag,
+    label: item.splitName || item.splitname || item.flag,
     value: parseInt(item.unique_key_count, 10),
     color: COLOR_MAP[index % COLOR_MAP.length],
   }));
 
   return (
     <div style={{ height: "400px", width: "100%" }}>
-      <div style={{ marginBottom: "10px" }}>
-        <label htmlFor="envPicker" style={{ fontWeight: "bold" }}>
-          Environment:
-        </label>{" "}
-        <select
-          id="envPicker"
-          value={envId}
-          onChange={(e) => setEnvId(e.target.value)}
-          style={{ padding: "4px 8px", fontSize: "14px" }}
-        >
-          {envOptions.map((env) => (
-            <option key={env} value={env}>
-              {env}
-            </option>
-          ))}
-        </select>
-      </div>
-
       <ResponsivePie
         data={pieData}
         margin={{ top: 40, right: 120, bottom: 80, left: 80 }}
@@ -83,24 +52,12 @@ export default function PieSummary({ onLoaded }) {
         borderWidth={1}
         borderColor={{ from: "color", modifiers: [["darker", 0.2]] }}
         arcLinkLabelsSkipAngle={10}
-        arcLinkLabelsTextColor="#555"
+        arcLinkLabelsTextColor="#ccc"
         arcLinkLabelsThickness={2}
         arcLinkLabelsColor={{ from: "color" }}
         arcLabelsSkipAngle={10}
-        arcLabelsTextColor="#222"
-        legends={[
-          {
-            anchor: "bottom",
-            direction: "row",
-            justify: false,
-            translateY: 56,
-            itemWidth: 100,
-            itemHeight: 14,
-            itemTextColor: "#333",
-            symbolSize: 14,
-            symbolShape: "circle",
-          },
-        ]}
+        arcLabelsTextColor="#ddd"
+        legends={[]}
       />
     </div>
   );

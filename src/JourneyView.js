@@ -1,10 +1,37 @@
-// JourneyView.js
-import React from "react";
+// src/JourneyView.js
+import React, { useEffect, useState } from "react";
 import SparkLines from "./SparkLines";
+import axios from "axios";
 
-export default function JourneyView({ data, sortColumn, sortOrder, handleSort }) {
+const JOURNEY_API = "https://mfea2ez5nzzae2ykksguoryooa0zqetq.lambda-url.us-west-2.on.aws/";
+
+export default function JourneyView({ sortColumn, sortOrder, onSort, darkMode }) {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    console.log("🔍 useEffect in JourneyView");
+    setLoading(true);
+
+    axios
+      .get(JOURNEY_API)
+      .then((res) => {
+        console.log("📦 Journey data received:", res.data);
+        setData(res.data || []);
+      })
+      .catch((err) => {
+        console.error("❌ Failed to load journey data:", err);
+        setData([]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <div style={{ padding: "1em", color: "#ccc" }}>Loading user journeys…</div>;
+  }
+
   if (!data || data.length === 0) {
-    return null; // nothing to render
+    return <div style={{ padding: "1em", color: "#666" }}>No user journey data available…</div>;
   }
 
   const headers = Object.keys(data[0]);
@@ -29,6 +56,7 @@ export default function JourneyView({ data, sortColumn, sortOrder, handleSort })
             minWidth: "600px",
             maxWidth: "50%",
             marginRight: "20px",
+            color: darkMode ? "#ccc" : "#333",
           }}
         >
           <thead>
@@ -36,10 +64,10 @@ export default function JourneyView({ data, sortColumn, sortOrder, handleSort })
               {headers.map((col) => (
                 <th
                   key={col}
-                  onClick={() => handleSort(col)}
+                  onClick={() => onSort(col)}
                   style={{
                     cursor: "pointer",
-                    borderBottom: "1px solid #ccc",
+                    borderBottom: "1px solid #888",
                     padding: "8px",
                     textAlign: "left",
                   }}
@@ -60,7 +88,7 @@ export default function JourneyView({ data, sortColumn, sortOrder, handleSort })
                     key={col}
                     style={{
                       padding: "8px",
-                      borderBottom: "1px solid #eee",
+                      borderBottom: "1px solid #444",
                       fontFamily: "monospace",
                     }}
                   >
@@ -72,7 +100,7 @@ export default function JourneyView({ data, sortColumn, sortOrder, handleSort })
           </tbody>
         </table>
 
-        <SparkLines impressions={sortedData} />
+        {sortedData.length > 0 && <SparkLines impressions={sortedData} darkMode={darkMode} />}
       </div>
     </div>
   );

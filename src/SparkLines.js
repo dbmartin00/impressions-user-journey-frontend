@@ -2,12 +2,19 @@ import React from "react";
 import "./SparkLines.css";
 import { COLOR_MAP } from "./colors";
 
-export default function SparkLines({ impressions }) {
+export default function SparkLines({ impressions, darkMode }) {
+  if (!impressions || impressions.length === 0) {
+    return <div className="sparkline-stack">No impression data for this environment.</div>;
+  }
+
   const splitMap = {};
 
-  for (const { splitName, utc, treatment } of impressions) {
-    if (!splitMap[splitName]) splitMap[splitName] = [];
-    splitMap[splitName].push({ utc, treatment });
+  for (const row of impressions) {
+    const name = row.splitName || row.splitname || row.flag || "Unknown";
+    const utc = row.utc;
+    const treatment = row.treatment;
+    if (!splitMap[name]) splitMap[name] = [];
+    splitMap[name].push({ utc, treatment });
   }
 
   const sortedSplits = Object.entries(splitMap)
@@ -28,7 +35,7 @@ export default function SparkLines({ impressions }) {
   const allTimes = impressions.map((i) => new Date(i.utc).getTime());
   const minTime = Math.min(...allTimes);
   const maxTime = Math.max(...allTimes);
-  const timeRange = maxTime - minTime;
+  const timeRange = maxTime - minTime || 1; // prevent divide-by-zero
 
   const ticks = [];
   for (let i = 0; i < 5; i++) {
@@ -37,13 +44,12 @@ export default function SparkLines({ impressions }) {
   }
 
   return (
-    <div className="sparkline-stack">
+    <div className="sparkline-stack" style={{ maxHeight: "60vh", overflowY: "auto" }}>
       {sortedSplits.map(({ splitName, entries }) => {
         const segments = [];
         let lastTime = minTime;
         let lastTreatment = null;
 
-        // const uniqueTreatments = [...new Set(entries.map((e) => e.treatment))];
         const treatmentColors = {};
         let colorIndex = 3; // Start after off/on/control
 
@@ -60,7 +66,7 @@ export default function SparkLines({ impressions }) {
               };
             } else {
               treatmentColors[treatment] = {
-                color: COLOR_MAP.at(-1),
+                color: "#888", // fallback hatch color
                 crosshatch: true
               };
             }
@@ -108,7 +114,8 @@ export default function SparkLines({ impressions }) {
                     width: `${seg.width}%`,
                     backgroundColor: seg.color
                   }}
-                  title={`Split: ${splitName}\nTreatment: ${seg.treatment}`}
+                  title={`Split: ${splitName} | Treatment: ${seg.treatment}`}
+                  aria-label={`Segment for ${splitName} with treatment ${seg.treatment}`}
                 />
               ))}
             </div>
@@ -116,7 +123,10 @@ export default function SparkLines({ impressions }) {
         );
       })}
 
-      <div className="sparkline-x-axis">
+      <div
+        className="sparkline-x-axis"
+        style={{ color: darkMode ? "#ccc" : "#333" }}
+      >
         {ticks.map((label, i) => (
           <div key={i} className="sparkline-x-tick">
             {label}

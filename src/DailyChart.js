@@ -1,85 +1,108 @@
+// src/DailyChart.js
 import React, { useEffect, useState } from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  ResponsiveContainer
-} from "recharts";
+import { ResponsiveScatterPlot } from "@nivo/scatterplot";
+import axios from "axios";
 import { COLOR_MAP } from "./colors";
 
-const DAILY_API_URL = process.env.REACT_APP_DAILY_ENDPOINT;
+const DAILY_API = "https://focplr5qecine545onui7xrtmy0helse.lambda-url.us-west-2.on.aws/";
 
 export default function DailyChart() {
-  // const [rawData, setRawData] = useState([]);
-  const [, setRawData] = useState([]);
-
-  const [chartData, setChartData] = useState([]);
-  const [flagNames, setFlagNames] = useState([]);
+  const [rawData, setRawData] = useState([]);
+  const [data, setData] = useState([]);
+  const [flags, setFlags] = useState([]);
   const [selectedFlag, setSelectedFlag] = useState("All");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
-    fetch(DAILY_API_URL)
-      .then((res) => res.json())
-      .then((raw) => {
-        setRawData(raw);
+    axios
+      .get(DAILY_API)
+      .then((res) => {
+        console.log("✅ Raw daily data:", res.data);
 
-        // Aggregate total count per flag
-        const flagTotals = {};
-        for (const row of raw) {
-          const flag = row.splitName;
-          const count = parseInt(row.impression_count, 10);
-          flagTotals[flag] = (flagTotals[flag] || 0) + count;
-        }
-
-        const sortedFlags = Object.entries(flagTotals)
-          .sort((a, b) => b[1] - a[1])
-          .map(([flag]) => flag);
-
-        setFlagNames(sortedFlags);
-        setSelectedFlag("All");
-
-        // Format data for "All"
         const grouped = {};
-        for (const row of raw) {
-          const date = row.impression_date.slice(0, 10);
-          const flag = row.splitName;
-          const count = parseInt(row.impression_count, 10);
-          if (!grouped[date]) grouped[date] = { date, All: 0 };
-          grouped[date][flag] = count;
-          grouped[date]["All"] += count;
-        }
+        const totalImpressions = {};
 
-        const final = Object.values(grouped);
-        setChartData(final);
+        res.data.forEach((entry) => {
+          const name =
+            entry.spltName || entry.splitName || entry.splitname || entry.flag || "Unknown";
+          const date = entry.impression_date.split(" ")[0];
+          const count = parseInt(entry.impression_count, 10) || 0;
+
+          if (!grouped[name]) grouped[name] = [];
+          grouped[name].push({ x: date, y: count });
+
+          totalImpressions[name] = (totalImpressions[name] || 0) + count;
+        });
+
+        const structured = Object.entries(grouped).map(([name, points]) => ({
+          id: name,
+          data: points.sort((a, b) => new Date(a.x) - new Date(b.x)),
+        }));
+
+        const sortedFlags = Object.entries(totalImpressions)
+          .sort((a, b) => b[1] - a[1])
+          .map(([name]) => name);
+
+        setRawData(structured);
+        setFlags(sortedFlags);
+        setSelectedFlag("All");
+        setData(structured);
       })
-      .catch((err) => console.error("Failed to load daily impressions", err))
+      .catch((err) => {
+        console.error("❌ Failed to load daily chart data:", err);
+        setRawData([]);
+        setData([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSelect = (e) => {
-    setSelectedFlag(e.target.value);
-  };
+  useEffect(() => {
+    if (selectedFlag === "All") {
+      setData(rawData);
+    } else {
+      setData(rawData.filter((series) => series.id === selectedFlag));
+    }
+  }, [selectedFlag, rawData]);
 
-  const chartReady = chartData.length > 0 && !loading;
+  if (loading) {
+    return <div style={{ padding: "1em", color: "#666" }}>Loading daily chart…</div>;
+  }
+
+  if (!data || data.length === 0) {
+    return <div style={{ padding: "1em", color: "#666" }}>No daily data available…</div>;
+  }
+
+  // ⏱ Create 7 evenly spaced ticks
+  const allDates = Array.from(new Set(data.flatMap((s) => s.data.map((d) => d.x))));
+  const sortedDates = allDates.sort((a, b) => new Date(a) - new Date(b));
+  const tickCount = 7;
+  const tickInterval = Math.max(1, Math.floor((sortedDates.length - 1) / (tickCount - 1)));
+  const tickValues = Array.from({ length: tickCount }, (_, i) =>
+    sortedDates[Math.min(i * tickInterval, sortedDates.length - 1)]
+  );
 
   return (
-    <div style={{ width: "100%", height: 500 }}>
-      <div style={{ marginBottom: "10px", fontSize: "14px" }}>
-        <label style={{ fontWeight: "bold", marginRight: "8px" }}>
-          Flag:
+    <div style={{ width: "100%" }}>
+      <div style={{ marginBottom: "1em", color: "#ccc" }}>
+        <label htmlFor="flag-select" style={{ marginRight: "8px" }}>
+          Filter by flag:
         </label>
         <select
+          id="flag-select"
           value={selectedFlag}
-          onChange={handleSelect}
-          style={{ padding: "4px 8px" }}
+          onChange={(e) => setSelectedFlag(e.target.value)}
+          style={{
+            padding: "6px 10px",
+            borderRadius: "4px",
+            backgroundColor: "#333",
+            color: "#eee",
+            border: "1px solid #555",
+            fontSize: "1em",
+          }}
         >
           <option value="All">All</option>
-          {flagNames.map((flag) => (
+          {flags.map((flag) => (
             <option key={flag} value={flag}>
               {flag}
             </option>
@@ -87,34 +110,65 @@ export default function DailyChart() {
         </select>
       </div>
 
-      {loading && (
-        <div style={{ color: "#666", paddingTop: "10px" }}>
-          Loading daily impressions…
-        </div>
-      )}
-
-      {chartReady && (
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{ top: 20, right: 30, bottom: 5, left: 20 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip />
-            <Line
-              type="monotone"
-              dataKey={selectedFlag}
-              stroke={COLOR_MAP[1]} // "on" color
-              strokeWidth={2}
-              dot={{ r: 2 }}
-              isAnimationActive={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      )}
+      <div style={{ height: "400px", width: "100%" }}>
+        <ResponsiveScatterPlot
+          data={data}
+          margin={{ top: 20, right: 40, bottom: 60, left: 60 }}
+          xScale={{ type: "point" }}
+          yScale={{ type: "linear", min: "auto", max: "auto" }}
+          colors="#c5c5c5"
+          axisBottom={{
+            tickValues,
+            tickRotation: 45,
+            tickSize: 5,
+            tickPadding: 5,
+            legend: "Date",
+            legendOffset: 40,
+            legendPosition: "middle",
+            tickColor: "#ccc",
+          }}
+          axisLeft={{
+            legend: "Count",
+            legendOffset: -40,
+            legendPosition: "middle",
+            tickColor: "#ccc",
+          }}
+          theme={{
+            axis: {
+              ticks: {
+                line: { stroke: "#ccc" },
+                text: { fill: "#ccc" },
+              },
+              domain: {
+                line: { stroke: "#ccc" },
+              },
+            },
+            grid: {
+              line: { stroke: "transparent" },
+            },
+            background: "transparent",
+          }}
+          nodeSize={8}
+          tooltip={({ node }) => (
+            <div
+              style={{
+                background: "#222",
+                color: "#fff",
+                padding: "6px 9px",
+                borderRadius: "4px",
+                fontSize: "0.85em",
+              }}
+            >
+              <strong>{node.serieId}</strong>
+              <br />
+              Date: {node.data.x}
+              <br />
+              Count: {node.data.y}
+            </div>
+          )}
+          useMesh={true}
+        />
+      </div>
     </div>
   );
 }
-
