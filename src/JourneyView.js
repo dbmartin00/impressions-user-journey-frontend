@@ -3,13 +3,18 @@ import React, { useEffect, useState } from "react";
 import SparkLines from "./SparkLines";
 import axios from "axios";
 
-const JOURNEY_API = "https://mfea2ez5nzzae2ykksguoryooa0zqetq.lambda-url.us-west-2.on.aws/";
+const JOURNEY_API = process.env.REACT_APP_API_URL;
 
-export default function JourneyView({ sortColumn, sortOrder, onSort, darkMode }) {
+export default function JourneyView({ sortColumn, sortOrder, onSort, darkMode, environmentId }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!environmentId) {
+      setData([]);
+      return;
+    }
+
     console.log("🔍 useEffect in JourneyView");
     setLoading(true);
 
@@ -17,14 +22,22 @@ export default function JourneyView({ sortColumn, sortOrder, onSort, darkMode })
       .get(JOURNEY_API)
       .then((res) => {
         console.log("📦 Journey data received:", res.data);
-        setData(res.data || []);
+        const allData = res.data || [];
+        const filtered = allData.filter(
+          (row) => row.environmentId === environmentId
+        );
+        setData(filtered);
       })
       .catch((err) => {
         console.error("❌ Failed to load journey data:", err);
         setData([]);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [environmentId]);
+
+  if (!environmentId) {
+    return <div style={{ padding: "1em", color: "#888" }}>Report inactive (no environment selected).</div>;
+  }
 
   if (loading) {
     return <div style={{ padding: "1em", color: "#ccc" }}>Loading user journeys…</div>;

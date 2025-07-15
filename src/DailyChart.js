@@ -4,9 +4,9 @@ import { ResponsiveScatterPlot } from "@nivo/scatterplot";
 import axios from "axios";
 import { COLOR_MAP } from "./colors";
 
-const DAILY_API = "https://focplr5qecine545onui7xrtmy0helse.lambda-url.us-west-2.on.aws/";
+const DAILY_API = process.env.REACT_APP_DAILY_ENDPOINT;
 
-export default function DailyChart() {
+export default function DailyChart({ environmentId }) {
   const [rawData, setRawData] = useState([]);
   const [data, setData] = useState([]);
   const [flags, setFlags] = useState([]);
@@ -14,16 +14,26 @@ export default function DailyChart() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!environmentId) {
+      setRawData([]);
+      setData([]);
+      return;
+    }
+
     setLoading(true);
     axios
       .get(DAILY_API)
       .then((res) => {
         console.log("✅ Raw daily data:", res.data);
 
+        const filtered = res.data.filter(
+          (entry) => entry.environmentId === environmentId
+        );
+
         const grouped = {};
         const totalImpressions = {};
 
-        res.data.forEach((entry) => {
+        filtered.forEach((entry) => {
           const name =
             entry.spltName || entry.splitName || entry.splitname || entry.flag || "Unknown";
           const date = entry.impression_date.split(" ")[0];
@@ -55,7 +65,7 @@ export default function DailyChart() {
         setData([]);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [environmentId]);
 
   useEffect(() => {
     if (selectedFlag === "All") {
@@ -64,6 +74,10 @@ export default function DailyChart() {
       setData(rawData.filter((series) => series.id === selectedFlag));
     }
   }, [selectedFlag, rawData]);
+
+  if (!environmentId) {
+    return <div style={{ padding: "1em", color: "#888" }}>Report inactive (no environment selected).</div>;
+  }
 
   if (loading) {
     return <div style={{ padding: "1em", color: "#666" }}>Loading daily chart…</div>;

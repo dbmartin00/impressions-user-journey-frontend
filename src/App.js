@@ -55,8 +55,8 @@ export default function App() {
     setLoading(true);
 
     try {
-      const summaryUrl = "https://v2izbwoeqbbxxuim2urfyrlspi0fwzez.lambda-url.us-west-2.on.aws/";
-      const journeyUrl = `https://mfea2ez5nzzae2ykksguoryooa0zqetq.lambda-url.us-west-2.on.aws/?key=${encodeURIComponent(trimmedKey)}&days=${days}`;
+      const summaryUrl = process.env.REACT_APP_PIE_ENDPOINT;
+      const journeyUrl = `${process.env.REACT_APP_API_URL}?key=${encodeURIComponent(trimmedKey)}&days=${days}`;
 
       const [summaryRes, journeyRes] = await Promise.all([
         axios.get(summaryUrl),
@@ -111,7 +111,6 @@ export default function App() {
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
-  
 
   return (
     <div style={{ ...theme.app }}>
@@ -121,7 +120,6 @@ export default function App() {
           <div>Loading Impressions Dashboard…</div>
         </div>
       )}
-
 
       <header style={{ ...theme.header }}>
         <div style={{ display: "flex", alignItems: "center" }}>
@@ -135,6 +133,7 @@ export default function App() {
               onChange={(e) => setSelectedEnv(e.target.value)}
               style={theme.input}
             >
+              <option value="">(Select Environment)</option>
               {availableEnvs.map((env) => (
                 <option key={env} value={env}>
                   {env}
@@ -147,6 +146,12 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {selectedEnv === "" && (
+        <div style={{ padding: "2em", color: "#999", textAlign: "center", fontSize: "1.2em" }}>
+          Please select an environment to view the report.
+        </div>
+      )}
 
       <div style={rowStyle}>
         <section style={{ ...theme.section, flex: 1, marginRight: "20px" }}>
@@ -203,6 +208,7 @@ export default function App() {
           sortOrder={sortOrder}
           onSort={handleSort}
           darkMode={darkMode}
+          environmentId={selectedEnv}
         />
       </section>
     </div>
@@ -285,12 +291,3 @@ const spinnerStyle = {
   animation: "spin 1s linear infinite",
   marginBottom: "20px",
 };
-
-const keyframesStyle = `
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-`;
-
-
