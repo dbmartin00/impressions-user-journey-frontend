@@ -11,7 +11,7 @@ export default function App() {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [availableEnvs, setAvailableEnvs] = useState([]);
-  const [selectedEnv, setSelectedEnv] = useState("");
+  const [selectedEnv, setSelectedEnv] = useState(() => localStorage.getItem("selectedEnv") || "");
   const [sortColumn, setSortColumn] = useState("utc");
   const [sortOrder, setSortOrder] = useState("desc");
   const [keyInput, setKeyInput] = useState("dmartin");
@@ -36,6 +36,29 @@ export default function App() {
       setFilteredData(data.filter((d) => d.environmentId === selectedEnv));
     }
   }, [selectedEnv, data]);
+
+  useEffect(() => {
+    localStorage.setItem("selectedEnv", selectedEnv);
+  }, [selectedEnv]);
+
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .fade-in {
+        opacity: 0;
+        animation: fadeIn 0.5s ease-in forwards;
+      }
+      @keyframes fadeIn {
+        to { opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
 
   const handleQuery = async () => {
     const trimmedKey = keyInput.trim();
@@ -76,8 +99,13 @@ export default function App() {
       setData(cleaned);
       setAvailableEnvs(envs);
 
-      if (envs.length > 0) {
-        setSelectedEnv(envs[0]);
+      if (!selectedEnv || !envs.includes(selectedEnv)) {
+        setSummaryLoaded(true);
+        setControlLoaded(true);
+      }
+      
+      if (envs.length > 0 && selectedEnv && !envs.includes(selectedEnv)) {
+        setSelectedEnv("");
       }
 
       setSortColumn("utc");
@@ -98,19 +126,6 @@ export default function App() {
       setSortOrder("asc");
     }
   };
-
-  // Inject spinning keyframes exactly once
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.innerHTML = `
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `;
-    document.head.appendChild(style);
-    return () => document.head.removeChild(style);
-  }, []);
 
   return (
     <div style={{ ...theme.app }}>
@@ -154,23 +169,23 @@ export default function App() {
       )}
 
       <div style={rowStyle}>
-        <section style={{ ...theme.section, flex: 1, marginRight: "20px" }}>
+        <section className="fade-in" style={{ ...theme.section, flex: 1, marginRight: "20px" }}>
           <h2 style={theme.h2}>📊 Overall Impressions Summary</h2>
           <PieSummary environmentId={selectedEnv} onLoaded={() => setSummaryLoaded(true)} />
         </section>
 
-        <section style={{ ...theme.section, flex: 1 }}>
+        <section className="fade-in" style={{ ...theme.section, flex: 1 }}>
           <h2 style={theme.h2}>🧪 Control Treatments by Flag</h2>
           <ControlChart environmentId={selectedEnv} onLoaded={() => setControlLoaded(true)} />
         </section>
       </div>
 
-      <section style={theme.section}>
+      <section className="fade-in" style={theme.section}>
         <h2 style={theme.h2}>📈 Daily Impressions by Flag</h2>
         <DailyChart environmentId={selectedEnv} />
       </section>
 
-      <section style={{ ...theme.section, ...theme.journey }}>
+      <section className="fade-in" style={{ ...theme.section, ...theme.journey }}>
         <h2 style={theme.h2}>🔍 User Journey Viewer</h2>
         <div style={{ marginBottom: "16px", textAlign: "center" }}>
           <input
